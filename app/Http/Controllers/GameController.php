@@ -109,7 +109,7 @@ class GameController extends Controller
         $pusher->trigger('lobby', 'player-left', $gamePlayer);
 
         return response()->json([
-            'players' => new UserResource($gamePlayer),
+            'players' => $game->playres,
         ]);
     }
 
@@ -118,13 +118,14 @@ class GameController extends Controller
      */
     public function guess(Game $game, Request $request)
     {
+        $player = auth()->user();
+
         $request->validate([
             'multiplayer' => 'numeric',
-            'points' => 'integer|min:1',
+            'points' => 'integer|min:1|max:'.$player->points,
         ]);
 
         $round = $game->getCurrentRound();
-        $player = auth()->user();
 
         if ($round->guesses()->where('user_id', $player->id)->exists()) {
             abort(403, "You already Guessed this round!!");
@@ -139,6 +140,7 @@ class GameController extends Controller
 
         $player = $guess->user;
         $player->points -= $guess->points;
+        $player->save();
 
         if ($round->guesses()->count() == $game->players()->count()) {
             return $this->start($game);

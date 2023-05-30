@@ -2,6 +2,34 @@
 <html>
 <head>
     <title>Game Lobby</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+</head>
+<body class="bg-light">
+    <main class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <h1 class="text-center">Game Lobby</h1>
+            </div>
+        </div>
+        <div class="row mt-5">
+            <div class="col-md-6 justify-content-center">
+                <h2 class="text-start">Players:</h2>
+                <ul id='players'>
+                    @foreach ($game->players as $player)
+                        <li>{{ $player->name }} <b class="text-primary">({{ $player->points }})</b></li>
+                    @endforeach
+                </ul>
+            </div>
+            <div class="col-md-6 justify-content-center">
+                <h2 class="text-start">Latest Result: <span id='result'></span></h2>
+                <ul id='guesses'>
+                    
+                </ul>
+            </div>
+        </div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" integrity="sha384-fbbOQedDUMZZ5KreZpsbe1LCZPVmfTnH7ois6mU1QK+m14rQ1l2bGBq41eYeM/fS" crossorigin="anonymous"></script>
     <script src="https://js.pusher.com/7.0/pusher.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js" integrity="sha512-3gJwYpMe3QewGELv8k/BX9vcqhryRdzRMxVfq6ngyWXwo03GFEzjsUm8Q7RZcHPHksttq7/GFoxjCVUjkjvPdw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script>
@@ -14,28 +42,25 @@
         const lobbyChannel = pusher.subscribe('lobby');
 
         lobbyChannel.bind('player-joined', function(data) {
-            // Handle player joined event
             console.log('New player joined:', data);
             reloadPlayers(data);
         });
 
         lobbyChannel.bind('player-left', function(data) {
-            // Handle player left event
             console.log('Player left:', data);
             reloadPlayers(data);
         });
 
         lobbyChannel.bind('game-started', function(data) {
-            // Handle player left event
             console.log('Round result:', data);
             reloadPlayers(data);
             $('#result').html(data.multiplyer);
             $('#guesses').empty();
             $.each(data.guesses, function (index, guess) { 
                 if (guess.won) {
-                    $('#guesses').append("<li>" + guess.player_name + " (+" + (guess.multiplyer*guess.points) + ") </li>");
+                    $('#guesses').append("<li class='alert alert-success my-2'>" + guess.player_name + " guessed " + guess.multiplyer + " and Won <b>+" + (guess.multiplyer*guess.points) + "</b> Points!!</li>");
                 } else {
-                    $('#guesses').append("<li>" + guess.player_name + " (0) </li>");
+                    $('#guesses').append("<li class='alert alert-danger my-2'>" + guess.player_name + " guessed " + guess.multiplyer + " and Lost <b>-" + guess.points + "</b> Points!!</li>");
                 }
             });
         });
@@ -44,24 +69,9 @@
         {
             $('#players').empty();
             $.each(data.players, function (index, player) { 
-                $('#players').append("<li>" + player.name + " (" + player.points + ") </li>");
+                $('#players').append("<li>" + player.name + "<b class='text-primary'> (" + player.points + ") </b></li>");
             });
         }
     </script>
-</head>
-<body>
-    <h1>Game Lobby</h1>
-    <h2>Players:</h2>
-    <ul id='players'>
-        @foreach ($game->players as $player)
-            <li>{{ $player->name }} ({{ $player->points }})</li>
-        @endforeach
-    </ul>
-    <h3>
-        Latest Result: <span id='result'></span>
-        <ul id='guesses'>
-
-        </ul>
-    </h3>
 </body>
 </html>
