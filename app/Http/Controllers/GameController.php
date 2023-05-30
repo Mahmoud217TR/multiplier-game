@@ -87,11 +87,15 @@ class GameController extends Controller
             'encrypted' => true,
         ]);
 
-        $pusher->trigger('lobby', 'player-joined', $gamePlayer);
+        $data = [
+            'players' => $game->players,
+        ];
+
+        $pusher->trigger('lobby', 'player-joined', $data);
 
         $gamePlayers = $game->players;
         return response()->json([
-            'players' => UserResource::collection($gamePlayers),
+            'players' => $gamePlayers,
         ]);
 
     }
@@ -101,12 +105,18 @@ class GameController extends Controller
      */
     public function leave(Game $game)
     {
-        $gamePlayer = $game->players()->where('user_id', auth()->user()->id)->first();
+        $gamePlayer = GamePlayer::where('user_id', auth()->user()->id)
+            ->where('game_id', $game->id)
+            ->first();
         $gamePlayer->delete();
 
         $pusher = $this->getPusherInstance();
 
-        $pusher->trigger('lobby', 'player-left', $gamePlayer);
+        $data = [
+            'players' => $game->players,
+        ];
+
+        $pusher->trigger('lobby', 'player-left', $data);
 
         return response()->json([
             'players' => $game->playres,

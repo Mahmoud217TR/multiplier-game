@@ -15,6 +15,11 @@ class GamePlayer extends Model
         'game_id',
     ];
 
+    protected $appends = [
+        'name',
+        'points',
+    ];
+
     public function game(): BelongsTo
     {
         return $this->belongsTo(Game::class);
@@ -23,5 +28,15 @@ class GamePlayer extends Model
     public function player(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function getNameAttribute(): string
+    {
+        return $this->player->name;
+    }
+
+    public function getPointsAttribute(): string
+    {
+        return $this->player->points;
     }
 }
