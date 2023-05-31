@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::create('rounds', function (Blueprint $table) {
             $table->id();
             $table->foreignIdFor(Game::class);
-            $table->float('multiplyer')->nullable();
+            $table->float('multiplier')->nullable();
             $table->timestamps();
         });
     }

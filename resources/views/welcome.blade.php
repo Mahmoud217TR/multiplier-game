@@ -8,7 +8,7 @@
     <main class="container mt-5">
         <div class="row justify-content-center">
             <div class="col-md-10">
-                <h1 class="text-center">Game Lobby</h1>
+                <h1 class="text-center">Game 1 Lobby</h1>
             </div>
         </div>
         <div class="row mt-5">
@@ -41,26 +41,26 @@
 
         const lobbyChannel = pusher.subscribe('lobby');
 
-        lobbyChannel.bind('player-joined', function(data) {
+        lobbyChannel.bind('player-joined-1', function(data) {
             console.log('New player joined:', data);
             reloadPlayers(data);
         });
 
-        lobbyChannel.bind('player-left', function(data) {
+        lobbyChannel.bind('player-left-1', function(data) {
             console.log('Player left:', data);
             reloadPlayers(data);
         });
 
-        lobbyChannel.bind('game-started', function(data) {
+        lobbyChannel.bind('game-started-1', function(data) {
             console.log('Round result:', data);
             reloadPlayers(data);
-            $('#result').html(data.multiplyer);
+            $('#result').html(data.multiplier);
             $('#guesses').empty();
             $.each(data.guesses, function (index, guess) { 
                 if (guess.won) {
-                    $('#guesses').append("<li class='alert alert-success my-2'>" + guess.player_name + " guessed " + guess.multiplyer + " and Won <b>+" + (guess.multiplyer*guess.points) + "</b> Points!!</li>");
+                    $('#guesses').append("<li class='alert alert-success my-2'>" + guess.player_name + " guessed " + guess.multiplier + " and Won <b>+" + (guess.reward) + "</b> Points!!</li>");
                 } else {
-                    $('#guesses').append("<li class='alert alert-danger my-2'>" + guess.player_name + " guessed " + guess.multiplyer + " and Lost <b>-" + guess.points + "</b> Points!!</li>");
+                    $('#guesses').append("<li class='alert alert-danger my-2'>" + guess.player_name + " guessed " + guess.multiplier + " and Lost <b>-" + guess.points + "</b> Points!!</li>");
                 }
             });
         });

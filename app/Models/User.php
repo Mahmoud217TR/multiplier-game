@@ -3,10 +3,13 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
+use Exception;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\{
+    BelongsToMany,
+    HasMany
+};
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -60,5 +63,19 @@ class User extends Authenticatable
     public function game(): BelongsToMany
     {
         return $this->belongsToMany(Game::class, 'game_players', 'user_id', 'game_id');
+    }
+
+    public function decreasePoints(int $points): void
+    {
+        if ($points > $this->points) {
+            throw new Exception("Points are not enough");
+        } else {
+            $this->decrement('points', $points);
+        }
+    }
+
+    public function increasePoints(int $points): void
+    {
+        $this->increment('points', $points);
     }
 }

@@ -4,12 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\Game;
 use App\Http\Requests\{
+    GuessRequest,
     StoreGameRequest,
     UpdateGameRequest
 };
+use App\Http\Resources\GuessResource;
 use App\Http\Resources\UserResource;
 use App\Models\GamePlayer;
 use App\Models\Guess;
+use App\Models\Round;
+use App\Models\User;
 use GuzzleHttp\Promise\Create;
 use Illuminate\Http\Request;
 use Pusher\Pusher;
@@ -77,25 +81,21 @@ class GameController extends Controller
      */
     public function join(Game $game)
     {
-        $gamePlayer = GamePlayer::firstOrCreate([
+        GamePlayer::firstOrCreate([
             'user_id' => auth()->user()->id,
             'game_id' => $game->id,
         ]);
 
-        $pusher = new Pusher(env('PUSHER_APP_KEY'), env('PUSHER_APP_SECRET'), env('PUSHER_APP_ID'), [
-            'cluster' => env('PUSHER_APP_CLUSTER'),
-            'encrypted' => true,
-        ]);
+        $pusher = $this->getPusherInstance();
 
         $data = [
             'players' => $game->players,
         ];
 
-        $pusher->trigger('lobby', 'player-joined', $data);
+        $pusher->trigger('lobby', 'player-joined-'.$game->id, $data);
 
-        $gamePlayers = $game->players;
         return response()->json([
-            'players' => $gamePlayers,
+            'players' => UserResource::collection($game->players),
         ]);
 
     }
@@ -116,43 +116,32 @@ class GameController extends Controller
             'players' => $game->players,
         ];
 
-        $pusher->trigger('lobby', 'player-left', $data);
+        $pusher->trigger('lobby', 'player-left-'.$game->id, $data);
 
         return response()->json([
-            'players' => $game->playres,
+            'players' => UserResource::collection($game->players),
         ]);
     }
 
     /**
      * Start the game lobby.
      */
-    public function guess(Game $game, Request $request)
+    public function guess(GuessRequest $request, Game $game)
     {
         $player = auth()->user();
-
-        $request->validate([
-            'multiplayer' => 'numeric',
-            'points' => 'integer|min:1|max:'.$player->points,
-        ]);
-
         $round = $game->getCurrentRound();
-
-        if ($round->guesses()->where('user_id', $player->id)->exists()) {
+        if ($round->hasPlayerGuessed($player)) {
             abort(403, "You already Guessed this round!!");
         }
 
-        $guess = Guess::create([
-            'user_id' => $player->id,
-            'round_id' => $round->id,
-            'multiplyer' => $request->multiplayer,
-            'points' => $request->points,
-        ]);
+        $guess = $this->makeGuess(
+            $player,
+            $round,
+            $request->multiplier,
+            $request->points
+        );
 
-        $player = $guess->user;
-        $player->points -= $guess->points;
-        $player->save();
-
-        if ($round->guesses()->count() == $game->players()->count()) {
+        if ($round->canStart()) {
             return $this->start($game);
         }
 
@@ -164,37 +153,57 @@ class GameController extends Controller
     private function start(Game $game): void
     {
         $round = $game->getCurrentRound();
-        $multiplyer = fake()->numberBetween(100,1000)/100;
+        $multiplier = $this->generateRandomMultiplier();
 
         $round->update([
-            'multiplyer' => $multiplyer,
+            'multiplier' => $multiplier,
         ]);
 
         $round->refresh();
 
         foreach ($round->guesses as $guess) {
-            if ($guess->won) {
-                $player = $guess->user;
-                $player->points += $guess->points *$guess->multiplyer;
-                $player->save();
+            if ($guess->hasWon()) {
+                $guess->user->increasePoints(
+                    $guess->getRewardPointsAmount()
+                );
             }
         }
 
         $data = [
-            'multiplyer' => $multiplyer,
-            'guesses' => $round->guesses,
-            'players' => $game->players,
+            'multiplier' => $multiplier,
+            'guesses' => GuessResource::collection($round->guesses),
+            'players' => UserResource::collection($game->players),
         ];
 
         $pusher = $this->getPusherInstance();
-        $pusher->trigger('lobby', 'game-started', $data);
+        $pusher->trigger('lobby', 'game-started-'.$game->id, $data);
     }
 
     private function getPusherInstance(): Pusher
     {
-        return new Pusher(env('PUSHER_APP_KEY'), env('PUSHER_APP_SECRET'), env('PUSHER_APP_ID'), [
-            'cluster' => env('PUSHER_APP_CLUSTER'),
-            'encrypted' => true,
+        return app(Pusher::class);
+    }
+
+    private function makeGuess(
+        User $player,
+        Round $round,
+        float $multiplier,
+        int $points,
+    ): Guess {
+        $guess = Guess::create([
+            'user_id' => $player->id,
+            'round_id' => $round->id,
+            'multiplier' => $multiplier,
+            'points' => $points,
         ]);
+
+        $player->decreasePoints($points);
+
+        return $guess;
+    }
+
+    private function generateRandomMultiplier(): float
+    {
+        return fake()->numberBetween(100, 1000)/100;
     }
 }

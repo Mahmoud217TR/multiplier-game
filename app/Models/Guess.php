@@ -13,13 +13,8 @@ class Guess extends Model
     protected $fillable = [
         'user_id',
         'round_id',
-        'multiplyer',
+        'multiplier',
         'points',
-    ];
-
-    protected $appends = [
-        'player_name',
-        'won',
     ];
 
     public function user(): BelongsTo
@@ -32,13 +27,13 @@ class Guess extends Model
         return $this->belongsTo(Round::class);
     }
 
-    public function getPlayerNameAttribute(): string
+    public function hasWon(): bool
     {
-        return $this->user->name;
+        return $this->multiplier <= $this->round->multiplier;
     }
 
-    public function getWonAttribute(): bool
+    public function getRewardPointsAmount(): int
     {
-        return $this->multiplyer <= $this->round->multiplyer;
+        return $this->hasWon()?$this->points * $this->multiplier:0;
     }
 }

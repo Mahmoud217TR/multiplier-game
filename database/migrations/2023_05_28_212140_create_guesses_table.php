@@ -17,7 +17,7 @@ return new class extends Migration
             $table->id();
             $table->foreignIdFor(User::class);
             $table->foreignIdFor(Round::class);
-            $table->float('multiplyer');
+            $table->float('multiplier');
             $table->unsignedBigInteger('points');
             $table->timestamps();
         });
